@@ -40,3 +40,24 @@ def text_node_to_html_node(text_node):
         return LeafNode(tag='img', value='', props={'src':text_node.url, 'alt':text_node.text})
     else:
         raise Exception(f'{text_type} Not a recognized type')
+
+
+
+def split_nodes_delimiter(old_nodes, delimiter, text_type):
+    new_nodes = []
+    for node in old_nodes:
+        if node.text_type is not TextType.TEXT or (delimiter not in node.text):
+            new_nodes.append(node) # we only attempt to split "text" type objects
+        else:
+            parts = node.text.split(delimiter)
+            if len(parts) % 2 == 0:
+                raise ValueError(f'Invalid markdown. "{delimiter}" not closed.')
+           
+            split_nodes = []
+            for i, part in enumerate(parts):
+                if part == "":
+                    continue
+                else:
+                    split_nodes.append(TextNode(part, [TextType.TEXT, text_type][i%2]))
+            new_nodes.extend(split_nodes)
+    return new_nodes

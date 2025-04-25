@@ -1,7 +1,7 @@
 import unittest
 from enum import Enum
 
-from textnode import TextNode, TextType, text_node_to_html_node
+from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -70,6 +70,83 @@ class TestTextNodeToHTML(unittest.TestCase):
         node = TextNode("Unknown type", UnknownTextType.UNKNOWN)
         with self.assertRaisesRegex(Exception, "unknown Not a recognized type"):
             text_node_to_html_node(node)
+
+class TestSplitNodesDelimiter(unittest.TestCase):
+    
+    def test_single_delimiter_raises_error(self):
+        nodes = [TextNode("Text with one ` delimiter", TextType.TEXT)]
+        with self.assertRaisesRegex(ValueError, 'Invalid markdown. "`" not closed.'):
+            split_nodes_delimiter(nodes, "`", TextType.CODE)
+
+    def test_valid_delimiter(self):
+        nodes = [TextNode("Text before `code` after", TextType.TEXT)]
+        expected = [
+            TextNode("Text before ", TextType.TEXT),
+            TextNode("code", TextType.CODE),
+            TextNode(" after", TextType.TEXT)
+        ]
+        self.assertEqual(split_nodes_delimiter(nodes, "`", TextType.CODE), expected)
+
+    def test_valid_delimiter_at_start(self):
+        nodes = [TextNode("`code` after", TextType.TEXT)]
+        expected = [
+            TextNode("code", TextType.CODE),
+            TextNode(" after", TextType.TEXT)
+        ]
+        self.assertEqual(split_nodes_delimiter(nodes, "`", TextType.CODE), expected)
+
+    def test_valid_delimiter_at_end(self):
+        nodes = [TextNode("Text before `code`", TextType.TEXT)]
+        expected = [
+            TextNode("Text before ", TextType.TEXT),
+            TextNode("code", TextType.CODE),
+        ]
+        self.assertEqual(split_nodes_delimiter(nodes, "`", TextType.CODE), expected)
+
+
+    def test_non_text_node_is_preserved(self):
+        bold_node = TextNode("Bold text", TextType.BOLD)
+        nodes = [TextNode("Text before `code` after", TextType.TEXT), bold_node]
+        expected = [
+            TextNode("Text before ", TextType.TEXT),
+            TextNode("code", TextType.CODE),
+            TextNode(" after", TextType.TEXT),
+            TextNode("Bold text", TextType.BOLD)
+        ]
+        self.assertEqual(split_nodes_delimiter(nodes, "`", TextType.CODE), expected)
+
+    def test_delim_bold_multiword(self):
+        node = TextNode(
+            "This is text with a **bolded word** and **another**", TextType.TEXT
+        )
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        self.assertListEqual(
+            [
+                TextNode("This is text with a ", TextType.TEXT),
+                TextNode("bolded word", TextType.BOLD),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("another", TextType.BOLD),
+            ],
+            new_nodes,
+        )
+
+    def test_delim_bold_and_italic(self):
+        node = TextNode("**bold** and _italic_", TextType.TEXT)
+        new_nodes = split_nodes_delimiter([node], "**", TextType.BOLD)
+        new_nodes = split_nodes_delimiter(new_nodes, "_", TextType.ITALIC)
+        self.assertListEqual(
+            [
+                TextNode("bold", TextType.BOLD),
+                TextNode(" and ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+            ],
+            new_nodes,
+        )
+
+    def test_delimiter_is_empty_string_raises_error(self):
+        nodes = [TextNode("Some text", TextType.TEXT)]
+        with self.assertRaises(ValueError):
+            split_nodes_delimiter(nodes, "", TextType.CODE)
 
 if __name__ == "__main__":
     unitest.main()
