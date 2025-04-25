@@ -13,4 +13,10 @@ class LeafNode(HTMLNode):
         if self.tag is None:
             return self.value
         return f'<{self.tag}{self.props_to_html()}>{self.value}</{self.tag}>'
-            
+
+    def __repr__(self):
+        parts = []
+        if self.tag: parts.append(f'tag="{self.tag}"')
+        parts.append(f'value="{self.value}"')
+        if self.props: parts.append(f'props={self.props}')
+        return f'LeafNode({", ".join(parts)})'
