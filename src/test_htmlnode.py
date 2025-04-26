@@ -25,3 +25,6 @@ class TestHTMLNode(unittest.TestCase):
         expected_output = ' data-value="some value with spaces" class="btn primary"'
         self.assertEqual(node.props_to_html(), expected_output)
 
+
+if __name__ == '__main__':
+    unittest.main()
