@@ -106,3 +106,11 @@ def split_nodes_image(old_nodes):
 def split_nodes_link(old_nodes):
     link_pattern = r'(?<!!)\[([^\]]*)\]\(([^)]*)\)'
     return split_nodes(old_nodes, link_pattern, TextType.LINK)
+
+
+def text_to_textnodes(text):
+    nodes = [TextNode(text, TextType.TEXT)]
+    for delimiter, type_ in [('**', TextType.BOLD), ('_', TextType.ITALIC), ('`', TextType.CODE)]:
+        nodes = split_nodes_delimiter(nodes, delimiter, type_)
+    nodes = split_nodes_image(nodes)
+    return split_nodes_link(nodes)

@@ -1,7 +1,7 @@
 import unittest
 from enum import Enum
 
-from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter, extract_markdown_links, extract_markdown_images, split_nodes_link, split_nodes_image
+from textnode import *
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -239,6 +239,43 @@ class TestSplitLinksImages(unittest.TestCase):
         )
 
 
+class TestTextToTextNode(unittest.TestCase):
+    def test_plain_text(self):
+        txt = "This is plain text."
+        expected = [
+            TextNode("This is plain text.", TextType.TEXT)
+        ]
+        self.assertListEqual(text_to_textnodes(txt), expected)
+
+    def test_bold_text(self):
+        txt = "This is **bold**"
+        expected = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("bold", TextType.BOLD),
+        ]
+        self.assertListEqual(text_to_textnodes(txt), expected)
+
+    def test_italic_text(self):
+        txt = "_what about Italic_"
+        expected = [
+            TextNode("what about Italic", TextType.ITALIC)
+        ]
+        self.assertListEqual(text_to_textnodes(txt), expected)
+
+    def test_image(self):
+        txt = "![one with image](https://some.url)"
+        expected = [
+            TextNode("one with image", TextType.IMAGE, "https://some.url")
+        ]
+        self.assertListEqual(text_to_textnodes(txt), expected)
+
+    def test_link(self):
+        txt = "Text then a [link](https://link.com)"
+        expected = [
+            TextNode("Text then a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "https://link.com"),
+        ]
+        self.assertListEqual(text_to_textnodes(txt), expected)
 
 if __name__ == "__main__":
     unitest.main()
