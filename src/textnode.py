@@ -72,3 +72,34 @@ def extract_markdown_images(text):
 def extract_markdown_links(text):
     pat = r'(?<!!)\[([^\]]*)\]\(([^)]*)\)'
     return re.findall(pat, text)
+
+
+# splitting links and images
+def split_nodes(old_nodes, pat, text_type):
+    new_nodes = []
+    for node in old_nodes:
+        pattern = pat
+        parts = re.split(pattern, node.text)
+    
+        i, split_nodes = 0, []
+        
+        while i < len(parts):
+            if parts[i] == "":
+                i += 1
+                continue
+            if i % 3 == 0:
+                split_nodes.append(TextNode(parts[i], TextType.TEXT))
+                i += 1
+            else:
+                split_nodes.append(TextNode(parts[i], text_type, parts[i+1]))
+                i += 2
+        new_nodes.extend(split_nodes)
+    return new_nodes
+
+def split_nodes_image(old_nodes):
+    img_pattern = r'!\[([^\]]*)\]\(([^)]*)\)'
+    return split_nodes(old_nodes, img_pattern, TextType.IMAGE)
+
+def split_nodes_link(old_nodes):
+    link_pattern = r'(?<!!)\[([^\]]*)\]\(([^)]*)\)'
+    return split_nodes(old_nodes, link_pattern, TextType.LINK)
