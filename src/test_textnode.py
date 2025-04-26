@@ -1,7 +1,7 @@
 import unittest
 from enum import Enum
 
-from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter
+from textnode import TextNode, TextType, text_node_to_html_node, split_nodes_delimiter, extract_markdown_links, extract_markdown_images
 
 class TestTextNode(unittest.TestCase):
     def test_eq(self):
@@ -147,6 +147,45 @@ class TestSplitNodesDelimiter(unittest.TestCase):
         nodes = [TextNode("Some text", TextType.TEXT)]
         with self.assertRaises(ValueError):
             split_nodes_delimiter(nodes, "", TextType.CODE)
+
+
+class TestExtractImgsLinks(unittest.TestCase):
+    def test_extract_markdown_images(self):
+        test_cases = [
+            ("This is text with an ![image](https://i.imgur.com/zjjcJKZ.png)", [("image", "https://i.imgur.com/zjjcJKZ.png")]),
+            ("![alt text](relative/path/img.jpg)", [("alt text", "relative/path/img.jpg")]),
+            ("Multiple images: ![img1](url1) and ![img2](url2)", [("img1", "url1"), ("img2", "url2")]),
+            ("Text before ![img](url)", [("img", "url")]),
+            ("![img](url) text after", [("img", "url")]),
+            ("![alt](url \"Image Title\")", [("alt", "url \"Image Title\"")]),
+            ("![](/path/no_alt.png)", [("", "/path/no_alt.png")]), # No alt text
+            ("No image here", []),
+            ("[not an image](url)", []), # Should not match links
+        ]
+        for text, expected in test_cases:
+            matches = extract_markdown_images(text)
+            self.assertListEqual(expected, matches)
+
+    def test_extract_markdown_links(self):
+        test_cases = [
+            ("This has a [link](https://example.com).", [("link", "https://example.com")]),
+            ("[Link with title](https://anothersite.org \"Title\")", [("Link with title", "https://anothersite.org \"Title\"")]),
+            ("Multiple links: [one](url1) and [two](url2)", [("one", "url1"), ("two", "url2")]),
+            ("Text before [link](url)", [("link", "url")]),
+            ("[link](url) text after", [("link", "url")]),
+            ("[simple link](url)", [("simple link", "url")]),
+            ("No link here", []),
+            ("![not a link](url)", []), # Should not match images
+            ("[link](url with spaces)", [("link", "url with spaces")]),
+            ("[link](url?param=value)", [("link", "url?param=value")]),
+            ("[link](url#fragment)", [("link", "url#fragment")]),
+            ("[link]()", [("link", "")]), # Empty URL
+            ("[](url)", [("", "url")]), # Empty link text
+        ]
+        for text, expected in test_cases:
+            matches = extract_markdown_links(text)
+            self.assertListEqual(expected, matches)
+
 
 if __name__ == "__main__":
     unitest.main()
