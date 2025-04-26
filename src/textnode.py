@@ -74,10 +74,13 @@ def extract_markdown_links(text):
     return re.findall(pat, text)
 
 
-# splitting links and images
+# both functions behave same - refactor
 def split_nodes(old_nodes, pat, text_type):
     new_nodes = []
     for node in old_nodes:
+        if node.text_type != TextType.TEXT:
+            new_nodes.append(node)
+            continue
         pattern = pat
         parts = re.split(pattern, node.text)
     
