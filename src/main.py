@@ -1,4 +1,5 @@
-import os, shutil
+import os, shutil, re
+from markdown_blocks import markdown_to_html_node
 
 def lstree(fpath, results=None):
     """Recursively traverses a directory tree and builds a list of all file and directory paths."""
@@ -15,16 +16,10 @@ def lstree(fpath, results=None):
 
 # we can use it to delete contents from public
 def rmtree(path):
-    print(f'Deleting {path}...')
-    print(80 * '-')
     paths = lstree(path)
-    # first remove files:
-    for fpath in paths: 
+    for fpath in paths[::-1]: 
         if os.path.isfile(fpath): os.remove(fpath)
-    # then remove empty dirs
-    for fpath in paths:
-        if os.path.isdir(fpath): os.rmdir(fpath)
-    # make sure it's clean
+        else: os.rmdir(fpath)
     assert lstree(path) == []
 
 # we can use it to copy
@@ -33,9 +28,10 @@ def cptree(src, dst):
         raise Exception(f'{src} doesnot exist')
     if not os.path.exists(dst):
         raise Exception(f'{dst} doesnot exist')
-    # first, make sure dst folder is empty
-    rmtree(dst)
     
+    # first, empty dst folder
+    rmtree(dst)
+
     paths = lstree(src)
     ix = len(src) # extract file or foldername from path
     
@@ -58,16 +54,46 @@ def cptree(src, dst):
     print(f'Successfully copied {len(lstree(src))} files and folders from {src} to {dst}')
 
 
-def main():
-    main_file_path = os.path.abspath(__file__)
-    dir_path  = os.path.dirname(main_file_path)
-    root_dir = os.path.dirname(dir_path)
+def extract_title(md):
+    if not md.startswith('# '):
+        raise ValueError('Title must start with "# "')
+    mo = re.match(r'^#\s.+', md)
+    return mo.group(0)[2:].strip()
     
-    src_dir = os.path.join(root_dir, 'static')
-    dst_dir = os.path.join(root_dir, 'public')
-    
-    cptree(src_dir, dst_dir)
+def generate_page(from_path, template_path, dest_path):
+    print(f" * {from_path} {template_path} -> {dest_path}")
 
+    with open(from_path) as f: md = f.read()
+    with open(template_path) as f: tmp_html = f.read()
+    content = markdown_to_html_node(md).to_html()
+    title = extract_title(md)
+    tmp_html = tmp_html.replace('{{ Title }}', title).replace('{{ Content }}', content)
+
+    if not os.path.exists(dest_path):
+        dirname = os.path.dirname(dest_path)
+        os.makedirs(dirname, exist_ok=True)
+        with open(dest_path, 'w') as f:
+            f.write(tmp_html)
+    return f'Succeffuly wrote to file {dest_path}: {os.path.exists(dest_path)}'
+
+from pathlib import Path
+
+def generate_pages_recursive(content_dir_path, template_path, dest_dir_path):
+    for path in lstree(content_dir_path):
+        if os.path.isfile(path):
+            parts = Path(path).parts[1:] # remove root src dir
+            dest_path = Path(dest_dir_path).joinpath(*parts).with_suffix('.html')
+            generate_page(path, template_path, dest_path)
+
+
+static_dir = './static'
+public_dir = './public'
+content_dir = './content'
+template_path = './template.html'
+
+def main():
+    cptree(static_dir, public_dir)
+    generate_pages_recursive(content_dir, template_path, public_dir)
 
 
 main()
