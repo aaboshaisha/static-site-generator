@@ -60,7 +60,7 @@ def extract_title(md):
     mo = re.match(r'^#\s.+', md)
     return mo.group(0)[2:].strip()
     
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath=None):
     print(f" * {from_path} {template_path} -> {dest_path}")
 
     with open(from_path) as f: md = f.read()
@@ -68,6 +68,8 @@ def generate_page(from_path, template_path, dest_path):
     content = markdown_to_html_node(md).to_html()
     title = extract_title(md)
     tmp_html = tmp_html.replace('{{ Title }}', title).replace('{{ Content }}', content)
+    tmp_html = tmp_html.replace('href="/', f'href="{basepath}')
+    tmp_html = tmp_html.replace('src="/', f'src="{basepath}')
 
     if not os.path.exists(dest_path):
         dirname = os.path.dirname(dest_path)
@@ -78,22 +80,29 @@ def generate_page(from_path, template_path, dest_path):
 
 from pathlib import Path
 
-def generate_pages_recursive(content_dir_path, template_path, dest_dir_path):
+def generate_pages_recursive(content_dir_path, template_path, dest_dir_path, basepath=None):
     for path in lstree(content_dir_path):
         if os.path.isfile(path):
             parts = Path(path).parts[1:] # remove root src dir
             dest_path = Path(dest_dir_path).joinpath(*parts).with_suffix('.html')
-            generate_page(path, template_path, dest_path)
+            generate_page(path, template_path, dest_path, basepath)
 
 
 static_dir = './static'
-public_dir = './public'
 content_dir = './content'
 template_path = './template.html'
+docs_dir = './docs'
+
+import sys
 
 def main():
-    cptree(static_dir, public_dir)
-    generate_pages_recursive(content_dir, template_path, public_dir)
+    try:
+        basepath = sys.argv[1]
+    except IndexError:
+        basepath = '/'
+    print(f'Base path is: {basepath}')
+    cptree(static_dir, docs_dir)
+    generate_pages_recursive(content_dir, template_path, docs_dir, basepath)
 
 
 main()
