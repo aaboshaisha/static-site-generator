@@ -21,7 +21,7 @@ def markdown_to_blocks(md):
 
 def block_to_block_type(block):
     def is_heading(s): return True if re.match(r'#{1,6}\s.+', s) else False
-    def is_quote(s): return all([line.startswith('> ') for line in s.split('\n')])
+    def is_quote(s): return all([line.startswith('>') for line in s.split('\n')])
     def is_unordered_list(s): return all([line.startswith('- ') for line in s.split('\n')])
     def is_code(s): return True if re.match(r'^```[\s\S]*?```$', s) else False
     def is_ordered_list(s):
@@ -64,17 +64,16 @@ def parse_code(text):
     leaf_node = text_node_to_html_node(TextNode(raw_txt, TextType.CODE))
     return ParentNode('pre', [leaf_node,])
 
+
 def parse_quote(text):
-    lines = [line for line in text.split('\n') if line]
+    lines = text.split('\n')
     fmt_lines = []
     for line in lines:
-        if not line.startswith('> '):
-            raise ValueError('No a valid blockquote')
+        if not line.strip().startswith('>'):
+            raise ValueError('Invalid quote..')
         fmt_lines.append(line.lstrip('>').strip())
-    lines = ' '.join(fmt_lines)
-    children = []
-    for line in lines:
-        children.extend(text_to_children(line))
+    txt = ' '.join(fmt_lines)
+    children = text_to_children(txt)
     return ParentNode('blockquote', children)
 
 def parse_heading(text):
